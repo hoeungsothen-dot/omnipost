@@ -1,8 +1,8 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/auth.store';
 import Layout from './components/layout/Layout';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
+import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import ContentPage from './pages/ContentPage';
 import CreateContentPage from './pages/CreateContentPage';
@@ -11,6 +11,8 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import AIAssistantPage from './pages/AIAssistantPage';
 import PlatformsPage from './pages/PlatformsPage';
 import SettingsPage from './pages/SettingsPage';
+import MediaLibraryPage from './pages/MediaLibraryPage';
+import TeamPage from './pages/TeamPage';
 
 function PrivateRoute({ children }) {
   const token = useAuthStore(s => s.token);
@@ -30,8 +32,10 @@ export default function App() {
         <Route path="content/:id/edit" element={<CreateContentPage />} />
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
+        <Route path="media" element={<MediaLibraryPage />} />
         <Route path="ai" element={<AIAssistantPage />} />
         <Route path="platforms" element={<PlatformsPage />} />
+        <Route path="team" element={<TeamPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
     </Routes>

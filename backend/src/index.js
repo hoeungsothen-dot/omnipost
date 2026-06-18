@@ -18,6 +18,11 @@ const analyticsRoutes = require('./routes/analytics.routes');
 const schedulerRoutes = require('./routes/scheduler.routes');
 const aiRoutes = require('./routes/ai.routes');
 const uploadRoutes = require('./routes/upload.routes');
+const oauthRoutes = require('./routes/oauth.routes');
+const webhookRoutes = require('./routes/webhooks/webhook.routes');
+const notificationRoutes = require('./routes/notification.routes');
+const mediaRoutes = require('./routes/media.routes');
+const teamRoutes = require('./routes/team.routes');
 
 const app = express();
 const server = http.createServer(app);
@@ -43,6 +48,11 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/scheduler', schedulerRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/oauth', oauthRoutes);
+app.use('/api/webhooks', webhookRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/media', mediaRoutes);
+app.use('/api/team', teamRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));

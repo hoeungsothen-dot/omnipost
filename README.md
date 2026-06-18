@@ -1,133 +1,197 @@
 # OmniPost — Multi-Platform CMS & Digital Marketing Manager
 
-A full-stack Content Management System for publishing and analyzing content across **Facebook, YouTube, Instagram, TikTok, LinkedIn, Telegram, and your Website** — all from one dashboard.
+A production-ready, full-stack Content Management System for publishing, scheduling, and analyzing content across **Facebook, YouTube, Instagram, TikTok, LinkedIn, Telegram, and your Website** — all from one dashboard.
+
+---
 
 ## Features
 
-- **Multi-platform publishing** — one post, all platforms simultaneously
-- **AI-powered captions** — Claude generates platform-specific captions automatically
-- **Content calendar** — visual schedule with drag-and-drop
-- **Analytics dashboard** — unified reach, engagement, and performance metrics
-- **Media management** — image/video upload with automatic format optimization
-- **Real-time updates** — Socket.IO for live publish status
-- **Scheduled publishing** — Bull queue with Redis, auto-retry on failure
-- **AI assistant** — chat interface for content strategy help
+| Feature | Details |
+|---------|---------|
+| **Multi-platform publishing** | Publish simultaneously to 7 platforms with one click |
+| **Real OAuth flows** | Facebook, Google/YouTube, TikTok, LinkedIn — full OAuth 2.0 with token auto-refresh |
+| **AI-powered captions** | Claude generates platform-specific captions, hashtags, content ideas |
+| **AI assistant chat** | In-app conversational marketing co-pilot |
+| **Media library** | Upload, browse, tag, and reuse images/videos with Cloudinary |
+| **Content calendar** | Weekly visual schedule with drag-and-drop |
+| **Analytics dashboard** | Unified reach, engagement, clicks across all platforms |
+| **Real-time notifications** | Socket.IO push for publish success/failure, team events |
+| **Scheduled publishing** | Bull + Redis queue with exponential retry |
+| **Team collaboration** | Invite members with Admin/Editor/Viewer roles |
+| **Webhooks** | Receive real-time analytics from Meta (Facebook/Instagram) |
+| **Docker deployment** | Full docker-compose stack in one command |
+
+---
 
 ## Architecture
 
 ```
 omnipost/
-├── backend/              # Express.js API
+├── backend/                    Express.js API server
 │   └── src/
-│       ├── index.js          # Server entry point
-│       ├── routes/           # REST API endpoints
-│       ├── models/           # MongoDB schemas
+│       ├── index.js               Entry point, Socket.IO setup
+│       ├── models/                MongoDB schemas
+│       │   ├── Content.model.js
+│       │   ├── User.model.js      (includes Workspace)
+│       │   ├── Metric.model.js
+│       │   ├── Media.model.js
+│       │   └── Notification.model.js
+│       ├── routes/                REST API endpoints
+│       │   ├── auth.routes.js
+│       │   ├── content.routes.js
+│       │   ├── platform.routes.js
+│       │   ├── analytics.routes.js
+│       │   ├── scheduler.routes.js
+│       │   ├── ai.routes.js
+│       │   ├── upload.routes.js
+│       │   ├── oauth.routes.js    ← OAuth callbacks for all platforms
+│       │   ├── media.routes.js    ← Media library CRUD
+│       │   ├── notification.routes.js
+│       │   ├── team.routes.js
+│       │   └── webhooks/
+│       │       └── webhook.routes.js  ← Meta webhooks + analytics sync
 │       ├── services/
-│       │   ├── publisher.service.js   # All platform publishers
-│       │   └── ai.service.js          # Claude AI integration
-│       ├── workers/
-│       │   └── scheduler.worker.js    # Bull queue + cron
-│       ├── middleware/       # Auth, error handling
-│       └── config/           # Redis, DB config
-└── frontend/             # React + Vite + Tailwind
-    └── src/
-        ├── pages/            # Dashboard, Content, Calendar, Analytics, AI...
-        ├── components/       # Reusable UI components
-        ├── services/api.js   # All API calls
-        └── store/            # Zustand state management
+│       │   ├── publisher.service.js   All 7 platform publishers
+│       │   ├── ai.service.js          Claude AI integration
+│       │   ├── notification.service.js
+│       │   └── oauth/
+│       │       └── oauth.service.js   Token exchange + auto-refresh
+│       └── workers/
+│           └── scheduler.worker.js    Bull queue + cron
+│
+├── frontend/                   React 18 + Vite + Tailwind CSS
+│   └── src/
+│       ├── pages/
+│       │   ├── DashboardPage.jsx
+│       │   ├── ContentPage.jsx
+│       │   ├── CreateContentPage.jsx
+│       │   ├── CalendarPage.jsx
+│       │   ├── AnalyticsPage.jsx
+│       │   ├── MediaLibraryPage.jsx   ← Media browser + upload
+│       │   ├── AIAssistantPage.jsx
+│       │   ├── PlatformsPage.jsx      ← OAuth connect buttons
+│       │   ├── TeamPage.jsx           ← Member management
+│       │   ├── SettingsPage.jsx
+│       │   └── LoginPage.jsx
+│       ├── components/
+│       │   ├── layout/Layout.jsx
+│       │   ├── notifications/NotificationBell.jsx
+│       │   └── ui/index.jsx           ← Modal, Badge, Avatar, Skeleton…
+│       ├── hooks/index.js             useSocket, useDebounce, usePollStatus
+│       ├── services/api.js            All API calls
+│       └── store/auth.store.js        Zustand auth
+│
+├── docs/platform-setup.md      Step-by-step platform connection guide
+├── docker-compose.yml
+└── .github/workflows/ci.yml    GitHub Actions CI
 ```
+
+---
 
 ## Quick Start
 
-### Prerequisites
-- Node.js 20+
-- MongoDB 7+
-- Redis 7+
-- Cloudinary account (media storage)
-- Anthropic API key (AI captions)
+### Option A — Docker (recommended)
 
-### 1. Clone and install
 ```bash
 git clone https://github.com/YOUR_USERNAME/omnipost.git
 cd omnipost
 cp backend/.env.example backend/.env
-# Fill in your credentials in backend/.env
-npm install
+# Fill in your credentials (at minimum: JWT_SECRET, ANTHROPIC_API_KEY, CLOUDINARY_*)
+docker-compose up -d
+```
+
+- Frontend: http://localhost:3000
+- API: http://localhost:4000/api/health
+
+### Option B — Local dev
+
+```bash
+# Prerequisites: Node 20+, MongoDB 7, Redis 7
+
+git clone https://github.com/YOUR_USERNAME/omnipost.git
+cd omnipost
+cp backend/.env.example backend/.env
+# Fill in credentials
+
+# Install all deps
 cd backend && npm install
 cd ../frontend && npm install
-```
 
-### 2. Start with Docker (recommended)
-```bash
-docker-compose up -d
-# Frontend: http://localhost:3000
-# Backend API: http://localhost:4000
-```
-
-### 3. Start manually
-```bash
-# Terminal 1 - Backend API
+# Terminal 1: API server
 cd backend && npm run dev
 
-# Terminal 2 - Background scheduler worker
+# Terminal 2: Scheduler worker
 cd backend && npm run worker
 
-# Terminal 3 - Frontend
+# Terminal 3: Frontend
 cd frontend && npm run dev
-# Open http://localhost:5173
+# → http://localhost:5173
 ```
+
+---
 
 ## Platform Setup
 
-Each platform requires API credentials. See the [Platform Setup Guide](docs/platform-setup.md) for step-by-step OAuth setup for each platform.
+See **[docs/platform-setup.md](docs/platform-setup.md)** for full step-by-step OAuth setup.
 
-| Platform | API | Auth Type |
-|----------|-----|-----------|
-| Facebook Pages | Meta Graph API v18 | OAuth 2.0 |
-| Instagram | Meta Graph API v18 | OAuth 2.0 |
-| YouTube | YouTube Data API v3 | OAuth 2.0 |
-| TikTok | TikTok Content Posting API | OAuth 2.0 |
-| LinkedIn | LinkedIn UGC API v2 | OAuth 2.0 |
-| Telegram | Telegram Bot API | Bot Token |
-| Website | WordPress REST API | JWT/App Password |
+| Platform | Auth type | Required env vars |
+|----------|-----------|-------------------|
+| Facebook Pages | OAuth 2.0 | `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET` |
+| Instagram Business | OAuth 2.0 (via Facebook) | Same as Facebook |
+| YouTube | OAuth 2.0 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
+| TikTok | OAuth 2.0 | `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET` |
+| LinkedIn | OAuth 2.0 | `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET` |
+| Telegram | Bot token (manual) | Configured in UI |
+| Website | WordPress App Password (manual) | Configured in UI |
 
-## API Endpoints
+---
+
+## API Reference
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/auth/register` | Register + create workspace |
-| POST | `/api/auth/login` | Login |
-| GET | `/api/content` | List content |
-| POST | `/api/content` | Create content |
+| POST | `/api/auth/register` | Register user + create workspace |
+| POST | `/api/auth/login` | Login, returns JWT |
+| GET | `/api/content` | List content (filter by status, platform) |
+| POST | `/api/content` | Create draft or scheduled post |
 | POST | `/api/content/:id/publish` | Publish immediately |
-| GET | `/api/analytics/overview` | Aggregated metrics |
-| POST | `/api/ai/captions` | Generate AI captions |
-| POST | `/api/ai/chat` | AI assistant chat |
-| POST | `/api/upload` | Upload media files |
-| GET | `/api/platforms` | List connected platforms |
-| POST | `/api/platforms/:platform/connect` | Connect platform |
+| GET | `/api/content/view/calendar` | Calendar range view |
+| GET | `/api/analytics/overview` | Aggregated metrics (configurable days) |
+| GET | `/api/analytics/timeseries` | Daily breakdown by platform |
+| POST | `/api/ai/captions` | Generate platform-specific captions |
+| POST | `/api/ai/hashtags` | Generate hashtag suggestions |
+| POST | `/api/ai/ideas` | Generate content ideas |
+| POST | `/api/ai/chat` | AI assistant conversation |
+| POST | `/api/upload` | Upload media to Cloudinary |
+| GET | `/api/media` | Browse media library |
+| POST | `/api/media/upload` | Upload to permanent media library |
+| GET | `/api/notifications` | List notifications |
+| POST | `/api/notifications/read-all` | Mark all read |
+| GET | `/api/team` | List workspace members |
+| POST | `/api/team/invite` | Invite by email |
+| GET | `/api/oauth/facebook` | Initiate Facebook OAuth |
+| GET | `/api/oauth/google` | Initiate Google/YouTube OAuth |
+| GET | `/api/oauth/tiktok` | Initiate TikTok OAuth |
+| GET | `/api/oauth/linkedin` | Initiate LinkedIn OAuth |
+| POST | `/api/oauth/telegram` | Connect Telegram bot |
+| POST | `/api/oauth/website` | Connect WordPress site |
+| GET | `/api/webhooks/meta` | Meta webhook verification |
+| POST | `/api/webhooks/meta` | Receive Meta events |
 
-## Environment Variables
-
-See `backend/.env.example` for all required variables.
-
-Key variables:
-- `MONGODB_URI` — MongoDB connection string
-- `REDIS_HOST` — Redis host for job queue
-- `JWT_SECRET` — Secret for auth tokens (use 64+ random chars in production)
-- `ANTHROPIC_API_KEY` — For AI caption generation
-- `CLOUDINARY_*` — For media storage
+---
 
 ## Tech Stack
 
-**Backend:** Node.js, Express, MongoDB (Mongoose), Redis, Bull, Socket.IO, Winston, Cloudinary, FFmpeg
+**Backend:** Node.js 20, Express, MongoDB 7 (Mongoose), Redis 7, Bull, Socket.IO, Winston, Cloudinary SDK, FFmpeg
 
-**Frontend:** React 18, Vite, Tailwind CSS, Zustand, TanStack Query, Recharts, React Dropzone
+**Frontend:** React 18, Vite, Tailwind CSS 3, Zustand, TanStack Query v5, Recharts, React Dropzone, Socket.IO client, date-fns
 
-**AI:** Anthropic Claude (claude-sonnet-4-6)
+**AI:** Anthropic Claude (`claude-sonnet-4-6`)
 
-**Infrastructure:** Docker, Nginx
+**Infrastructure:** Docker, Nginx, GitHub Actions
+
+---
 
 ## License
 
-MIT
+MIT — free to use, modify, and deploy.
