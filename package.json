@@ -1,13 +1,12 @@
 {
   "name": "omnipost",
   "version": "1.0.0",
-  "description": "Multi-platform Content Management System & Digital Marketing Analyzer",
+  "description": "Multi-platform CMS & Digital Marketing Manager",
   "private": true,
-  "workspaces": ["backend", "frontend"],
   "scripts": {
+    "build": "cd frontend && npm install && npm run build",
     "dev": "concurrently \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend\"",
-    "build": "npm run build --workspace=frontend",
-    "install:all": "npm install && npm install --workspace=backend && npm install --workspace=frontend"
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
