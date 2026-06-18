@@ -23,33 +23,30 @@ const notificationRoutes = require('./routes/notification.routes');
 const mediaRoutes = require('./routes/media.routes');
 const teamRoutes = require('./routes/team.routes');
 
-const ALLOWED_ORIGINS = [
-  process.env.FRONTEND_URL,
-  'https://omnipost.hoeungsothen.workers.dev',
-  'http://localhost:5173',
-  'http://localhost:3000',
-].filter(Boolean);
-
+// Allow ALL origins — single business app, no need to restrict
 const corsOptions = {
-  origin: function(origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, etc)
-    if (!origin) return callback(null, true);
-    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
-    callback(null, true); // Allow all origins for now
-  },
+  origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   optionsSuccessStatus: 200,
 };
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: corsOptions });
+const io = new Server(server, { cors: { origin: true, credentials: true } });
 
-app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' }, contentSecurityPolicy: false }));
+// Disable all helmet restrictions that could block requests
+app.use(helmet({
+  crossOriginResourcePolicy: false,
+  crossOriginOpenerPolicy: false,
+  contentSecurityPolicy: false,
+}));
+
+// CORS must be before everything else
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // Handle ALL preflight requests
+app.options('*', cors(corsOptions));
+
 app.use(morgan('combined', { stream: { write: msg => logger.info(msg.trim()) } }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -57,7 +54,11 @@ app.use((req, _res, next) => { req.io = io; next(); });
 
 // Health check — responds immediately
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString(), db: mongoose.connection.readyState === 1 ? 'connected' : 'connecting' });
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    db: mongoose.connection.readyState === 1 ? 'connected' : 'connecting',
+  });
 });
 
 app.use('/api/auth', authRoutes);
@@ -83,11 +84,9 @@ io.on('connection', (socket) => {
 
 async function start() {
   const PORT = process.env.PORT || 4000;
-  // Listen FIRST so healthcheck passes immediately
   server.listen(PORT, '0.0.0.0', () => {
     logger.info(`OmniPost API running on port ${PORT}`);
   });
-  // Then connect databases
   try {
     const mongoUri = process.env.MONGODB_URL || process.env.MONGODB_URI || 'mongodb://localhost:27017/omnipost';
     await mongoose.connect(mongoUri);
