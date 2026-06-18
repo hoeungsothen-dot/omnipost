@@ -10,14 +10,9 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
-    // Disable eval — required for Cloudflare Workers CSP
-    minify: 'terser',
-    terserOptions: {
-      compress: { evaluate: false },
-    },
+    minify: 'esbuild',
     rollupOptions: {
       output: {
-        // Split chunks to stay under 500KB warning
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
           charts: ['recharts'],
@@ -33,5 +28,9 @@ export default defineConfig({
     proxy: {
       '/api': { target: 'http://localhost:4000', changeOrigin: true },
     },
+  },
+  define: {
+    // Ensure env vars are embedded at build time
+    __API_URL__: JSON.stringify(process.env.VITE_API_URL || ''),
   },
 });
