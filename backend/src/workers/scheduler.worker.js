@@ -7,7 +7,7 @@ const { User, Workspace } = require('../models/User.model');
 const { getPublisher } = require('../services/publisher.service');
 
 const publishQueue = new Bull('publish-queue', {
-  redis: {
+  redis: process.env.REDIS_URL || {
     host: process.env.REDIS_HOST || 'localhost',
     port: parseInt(process.env.REDIS_PORT || '6379'),
     password: process.env.REDIS_PASSWORD,
@@ -101,7 +101,8 @@ cron.schedule('* * * * *', async () => {
 
 // Connect and start
 async function startWorker() {
-  await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/omnipost');
+  const mongoUri = process.env.MONGODB_URL || process.env.MONGODB_URI || 'mongodb://localhost:27017/omnipost';
+  await mongoose.connect(mongoUri);
   logger.info('Scheduler worker started');
 }
 

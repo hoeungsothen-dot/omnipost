@@ -24,15 +24,22 @@ const notificationRoutes = require('./routes/notification.routes');
 const mediaRoutes = require('./routes/media.routes');
 const teamRoutes = require('./routes/team.routes');
 
+const ALLOWED_ORIGINS = [
+  process.env.FRONTEND_URL,
+  'https://omnipost.hoeungsothen.workers.dev',
+  'http://localhost:5173',
+  'http://localhost:3000',
+].filter(Boolean);
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: process.env.FRONTEND_URL || 'http://localhost:5173', credentials: true }
+  cors: { origin: ALLOWED_ORIGINS, credentials: true }
 });
 
 // Middleware
-app.use(helmet());
-app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173', credentials: true }));
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+app.use(cors({ origin: ALLOWED_ORIGINS, credentials: true }));
 app.use(morgan('combined', { stream: { write: msg => logger.info(msg.trim()) } }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -70,12 +77,21 @@ io.on('connection', (socket) => {
 // Connect databases and start server
 async function start() {
   try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/omnipost');
+    // Railway uses MONGODB_URL, standard uses MONGODB_URI
+    const mongoUri = process.env.MONGODB_URL || process.env.MONGODB_URI || 'mongodb://localhost:27017/omnipost';
+    await mongoose.connect(mongoUri);
     logger.info('MongoDB connected');
-    await connectRedis();
-    logger.info('Redis connected');
+
+    // Redis is optional — if not configured, scheduled publishing still works via cron
+    try {
+      await connectRedis();
+      logger.info('Redis connected');
+    } catch (redisErr) {
+      logger.warn('Redis not available — queue features disabled:', redisErr.message);
+    }
+
     const PORT = process.env.PORT || 4000;
-    server.listen(PORT, () => logger.info(`OmniPost API running on port ${PORT}`));
+    server.listen(PORT, '0.0.0.0', () => logger.info(`OmniPost API running on port ${PORT}`));
   } catch (err) {
     logger.error('Startup error:', err);
     process.exit(1);
