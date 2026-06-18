@@ -30,20 +30,32 @@ const ALLOWED_ORIGINS = [
   'http://localhost:3000',
 ].filter(Boolean);
 
+const corsOptions = {
+  origin: function(origin, callback) {
+    // Allow requests with no origin (mobile apps, curl, etc)
+    if (!origin) return callback(null, true);
+    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    callback(null, true); // Allow all origins for now
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 200,
+};
+
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: ALLOWED_ORIGINS, credentials: true }
-});
+const io = new Server(server, { cors: corsOptions });
 
-app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-app.use(cors({ origin: ALLOWED_ORIGINS, credentials: true }));
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' }, contentSecurityPolicy: false }));
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Handle ALL preflight requests
 app.use(morgan('combined', { stream: { write: msg => logger.info(msg.trim()) } }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use((req, _res, next) => { req.io = io; next(); });
 
-// Health check FIRST — responds immediately even before DB connects
+// Health check — responds immediately
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString(), db: mongoose.connection.readyState === 1 ? 'connected' : 'connecting' });
 });
@@ -71,13 +83,11 @@ io.on('connection', (socket) => {
 
 async function start() {
   const PORT = process.env.PORT || 4000;
-
-  // Start listening IMMEDIATELY so healthcheck passes
+  // Listen FIRST so healthcheck passes immediately
   server.listen(PORT, '0.0.0.0', () => {
     logger.info(`OmniPost API running on port ${PORT}`);
   });
-
-  // Then connect to databases
+  // Then connect databases
   try {
     const mongoUri = process.env.MONGODB_URL || process.env.MONGODB_URI || 'mongodb://localhost:27017/omnipost';
     await mongoose.connect(mongoUri);
@@ -85,7 +95,6 @@ async function start() {
   } catch (err) {
     logger.error('MongoDB connection error:', err.message);
   }
-
   try {
     await connectRedis();
     logger.info('Redis connected');
