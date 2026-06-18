@@ -19,15 +19,12 @@ const upload = multer({
 
 router.use(authenticate);
 
-// GET /api/media — list media library
 router.get('/', async (req, res, next) => {
   try {
-    const { type, tags, page = 1, limit = 24, search } = req.query;
+    const { type, page = 1, limit = 24, search } = req.query;
     const filter = { workspaceId: req.workspace._id };
     if (type) filter.type = type;
-    if (tags) filter.tags = { $in: tags.split(',') };
     if (search) filter.name = { $regex: search, $options: 'i' };
-
     const [items, total] = await Promise.all([
       Media.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(Number(limit)),
       Media.countDocuments(filter),
@@ -36,7 +33,6 @@ router.get('/', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// POST /api/media/upload — upload to media library
 router.post('/upload', upload.array('files', 20), async (req, res, next) => {
   try {
     if (!req.files?.length) return res.status(400).json({ error: 'No files provided' });
@@ -48,10 +44,8 @@ router.post('/upload', upload.array('files', 20), async (req, res, next) => {
           {
             resource_type: isVideo ? 'video' : 'image',
             folder: `omnipost/${req.workspace._id}/library`,
-            eager: isVideo
-              ? [{ format: 'mp4', quality: 'auto' }, { format: 'jpg', video_codec: 'none' }]
-              : [{ width: 2048, height: 2048, crop: 'limit', quality: 'auto:good', format: 'webp' }],
-            eager_async: false,
+            quality: 'auto',
+            fetch_format: 'auto',
           },
           (err, result) => { if (err) reject(err); else resolve(result); }
         );
@@ -62,7 +56,7 @@ router.post('/upload', upload.array('files', 20), async (req, res, next) => {
         workspaceId: req.workspace._id,
         uploadedBy: req.user._id,
         url: result.secure_url,
-        thumbnailUrl: isVideo ? result.eager?.[1]?.secure_url : result.secure_url,
+        thumbnailUrl: result.secure_url,
         type: isVideo ? 'video' : 'image',
         mimeType: file.mimetype,
         size: result.bytes,
@@ -81,12 +75,10 @@ router.post('/upload', upload.array('files', 20), async (req, res, next) => {
   }
 });
 
-// DELETE /api/media/:id
 router.delete('/:id', async (req, res, next) => {
   try {
     const media = await Media.findOneAndDelete({ _id: req.params.id, workspaceId: req.workspace._id });
     if (!media) return res.status(404).json({ error: 'Not found' });
-    // Delete from Cloudinary
     await cloudinary.uploader.destroy(media.cloudinaryId, {
       resource_type: media.type === 'video' ? 'video' : 'image',
     });
@@ -94,7 +86,6 @@ router.delete('/:id', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// PATCH /api/media/:id — update tags/name
 router.patch('/:id', async (req, res, next) => {
   try {
     const media = await Media.findOneAndUpdate(
@@ -106,16 +97,11 @@ router.patch('/:id', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// GET /api/media/stats
 router.get('/stats', async (req, res, next) => {
   try {
     const stats = await Media.aggregate([
       { $match: { workspaceId: req.workspace._id } },
-      { $group: {
-        _id: '$type',
-        count: { $sum: 1 },
-        totalSize: { $sum: '$size' },
-      }},
+      { $group: { _id: '$type', count: { $sum: 1 }, totalSize: { $sum: '$size' } } },
     ]);
     res.json(stats);
   } catch (err) { next(err); }
