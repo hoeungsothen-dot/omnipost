@@ -2,7 +2,7 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const logger = require('../utils/logger');
 
-const mongoUri = process.env.MONGODB_URL || process.env.MONGODB_URI || 'mongodb://localhost:27017/omnipost';
+const mongoUri = process.env.MONGO_URL || process.env.MONGODB_URL || process.env.MONGODB_URI || 'mongodb://localhost:27017/omnipost';
 
 let publishQueue = null;
 

@@ -61,7 +61,7 @@ async function start() {
   const PORT = process.env.PORT || 4000;
   server.listen(PORT, '0.0.0.0', () => logger.info(`OmniPost API running on port ${PORT}`));
   try {
-    const mongoUri = process.env.MONGODB_URL || process.env.MONGODB_URI || 'mongodb://localhost:27017/omnipost';
+    const mongoUri = process.env.MONGO_URL || process.env.MONGODB_URL || process.env.MONGODB_URI || 'mongodb://localhost:27017/omnipost';
     await mongoose.connect(mongoUri);
     logger.info('MongoDB connected');
   } catch (err) { logger.error('MongoDB error:', err.message); }
