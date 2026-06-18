@@ -2,7 +2,12 @@ import axios from 'axios';
 import { useAuthStore } from '../store/auth.store';
 import toast from 'react-hot-toast';
 
-const api = axios.create({ baseURL: '/api', timeout: 30000 });
+// Use VITE_API_URL env var in production, fall back to relative /api for local dev
+const BASE_URL = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : '/api';
+
+const api = axios.create({ baseURL: BASE_URL, timeout: 30000 });
 
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().token;
@@ -17,6 +22,9 @@ api.interceptors.response.use(
     if (err.response?.status === 401) {
       useAuthStore.getState().logout();
       window.location.href = '/login';
+    } else if (err.code === 'ERR_NETWORK' || err.code === 'ECONNREFUSED') {
+      // Backend not connected — silently fail for static preview
+      console.warn('Backend not reachable:', BASE_URL);
     } else {
       toast.error(msg);
     }
@@ -24,14 +32,12 @@ api.interceptors.response.use(
   }
 );
 
-// Auth
 export const authAPI = {
   login: (data) => api.post('/auth/login', data),
   register: (data) => api.post('/auth/register', data),
   me: () => api.get('/auth/me'),
 };
 
-// Content
 export const contentAPI = {
   list: (params) => api.get('/content', { params }),
   get: (id) => api.get(`/content/${id}`),
@@ -42,21 +48,18 @@ export const contentAPI = {
   calendar: (params) => api.get('/content/view/calendar', { params }),
 };
 
-// Platforms
 export const platformAPI = {
   list: () => api.get('/platforms'),
   connect: (platform, data) => api.post(`/platforms/${platform}/connect`, data),
   disconnect: (platform) => api.delete(`/platforms/${platform}/disconnect`),
 };
 
-// Analytics
 export const analyticsAPI = {
   overview: (params) => api.get('/analytics/overview', { params }),
   timeseries: (params) => api.get('/analytics/timeseries', { params }),
   topContent: (params) => api.get('/analytics/top-content', { params }),
 };
 
-// AI
 export const aiAPI = {
   captions: (data) => api.post('/ai/captions', data),
   hashtags: (data) => api.post('/ai/hashtags', data),
@@ -65,7 +68,6 @@ export const aiAPI = {
   chat: (data) => api.post('/ai/chat', data),
 };
 
-// Upload
 export const uploadAPI = {
   upload: (files, onProgress) => {
     const form = new FormData();
