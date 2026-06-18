@@ -9,3 +9,4 @@ logs/
 Thumbs.db
 coverage/
 .nyc_output/
+.github/
