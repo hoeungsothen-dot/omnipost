@@ -1,13 +1,13 @@
 {
   "name": "omnipost",
   "version": "1.0.0",
-  "description": "Multi-platform CMS & Digital Marketing Manager",
   "private": true,
-  "scripts": {
-    "build": "cd frontend && npm install && npm run build",
-    "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\""
+  "engines": {
+    "node": ">=20.0.0"
   },
-  "devDependencies": {
-    "concurrently": "^8.2.2"
+  "scripts": {
+    "start": "node backend/src/index.js",
+    "install": "npm install --prefix backend",
+    "build": "cd frontend && npm install && npm run build"
   }
 }
