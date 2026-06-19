@@ -25,29 +25,28 @@ const NewPostModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     }));
   };
 
-  const handleSubmit = (status: 'draft' | 'scheduled' | 'published') => {
+  const handleSubmit = async (status: 'draft' | 'scheduled' | 'published') => {
     if (!form.title || form.platforms.length === 0) {
       alert('Please fill in the title and select at least one platform.');
       return;
     }
-    const now = new Date().toISOString();
-    const newPost: Post = {
-      id: generateId(),
-      title: form.title,
-      caption: form.caption,
-      hashtags: form.hashtags.split(' ').filter(Boolean),
-      contentType: form.contentType,
-      media: [],
-      platforms: form.platforms,
-      status,
-      scheduledAt: form.scheduleDate && form.scheduleTime
-        ? new Date(`${form.scheduleDate}T${form.scheduleTime}`).toISOString()
-        : undefined,
-      createdAt: now,
-      updatedAt: now,
-    };
-    addPost(newPost);
-    onClose();
+    try {
+      await addPost({
+        title: form.title,
+        caption: form.caption,
+        hashtags: form.hashtags.split(' ').filter(Boolean),
+        contentType: form.contentType,
+        media: [],
+        platforms: form.platforms,
+        status,
+        scheduledAt: form.scheduleDate && form.scheduleTime
+          ? new Date(`${form.scheduleDate}T${form.scheduleTime}`).toISOString()
+          : undefined,
+      });
+      onClose();
+    } catch (err: any) {
+      alert(`Failed to save post: ${err.message || 'Unknown error'}`);
+    }
   };
 
   return (
