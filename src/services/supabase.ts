@@ -121,7 +121,8 @@ export const mediaService = {
 
   async upload(file: File, userId: string) {
     const ext = file.name.split('.').pop();
-    const path = `${userId}/${Date.now()}.${ext}`;
+    const randomSuffix = Math.random().toString(36).slice(2, 8);
+    const path = `${userId}/${Date.now()}-${randomSuffix}.${ext}`;
 
     const { error: uploadError } = await supabase.storage.from('media').upload(path, file);
     if (uploadError) throw uploadError;
