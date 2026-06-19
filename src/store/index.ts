@@ -113,6 +113,7 @@ interface AppStore {
   deleteMediaFile: (id: string) => Promise<void>;
 
   togglePlatformConnection: (id: string) => Promise<void>;
+  connectTelegram: (channelId: string, channelTitle: string) => Promise<void>;
 
   addTeamMember: (email: string, role: TeamMember['role']) => Promise<void>;
   updateTeamMember: (id: string, updates: Partial<TeamMember>) => Promise<void>;
@@ -147,8 +148,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
       const posts = (postsRows || []).map(mapPostRow);
       const mediaFiles = (mediaRows || []).map(mapMediaRow);
-      const platformAccounts = (platformRows || []).map(mapPlatformRow);
+      const dbPlatformAccounts = (platformRows || []).map(mapPlatformRow);
       const teamMembers = (teamRows || []).map(mapTeamRow);
+
+      // Always show all 8 platforms as cards, merging in real connection data where it exists
+      const ALL_PLATFORMS: Platform[] = ['facebook', 'instagram', 'youtube', 'tiktok', 'telegram', 'linkedin', 'twitter', 'website'];
+      const platformAccounts: PlatformAccount[] = ALL_PLATFORMS.map((platform) => {
+        const existing = dbPlatformAccounts.find((p) => p.platform === platform);
+        return existing || { id: platform, platform, name: '', handle: '', connected: false, followers: 0 };
+      });
 
       const publishedPosts = posts.filter((p) => p.status === 'published');
       const totalReach = posts.reduce((s, p) => s + (p.analytics?.reach || 0), 0);
@@ -276,6 +284,23 @@ export const useAppStore = create<AppStore>((set, get) => ({
     } else {
       await platformsService.upsert(account.platform, { connected: true });
     }
+    await get().loadAll();
+  },
+
+  connectTelegram: async (channelId: string, channelTitle: string) => {
+    if (!isSupabaseConfigured) {
+      set((s) => ({
+        platformAccounts: s.platformAccounts.map((p) =>
+          p.platform === 'telegram' ? { ...p, connected: true, handle: channelId, name: channelTitle } : p
+        ),
+      }));
+      return;
+    }
+    await platformsService.upsert('telegram', {
+      connected: true,
+      handle: channelId,
+      name: channelTitle,
+    });
     await get().loadAll();
   },
 
