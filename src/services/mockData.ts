@@ -1,0 +1,128 @@
+import type { DashboardStats, Post, MediaFile, PlatformAccount, TeamMember } from '../types';
+
+export const mockDashboardStats: DashboardStats = {
+  totalReach: 2400000,
+  totalImpressions: 8100000,
+  avgEngagementRate: 6.2,
+  postsPublished: 47,
+  reachChange: 18,
+  impressionsChange: 22,
+  engagementChange: 0.8,
+  dailyReach: [
+    { date: 'Jun 13', reach: 28000 },
+    { date: 'Jun 14', reach: 32000 },
+    { date: 'Jun 15', reach: 29000 },
+    { date: 'Jun 16', reach: 38000 },
+    { date: 'Jun 17', reach: 42000 },
+    { date: 'Jun 18', reach: 51000 },
+    { date: 'Jun 19', reach: 58000 },
+  ],
+  reachByPlatform: [
+    { platform: 'facebook', reach: 85000 },
+    { platform: 'instagram', reach: 72000 },
+    { platform: 'youtube', reach: 61000 },
+    { platform: 'tiktok', reach: 48000 },
+    { platform: 'telegram', reach: 35000 },
+    { platform: 'linkedin', reach: 22000 },
+    { platform: 'twitter', reach: 14000 },
+  ],
+};
+
+export const mockPosts: Post[] = [
+  {
+    id: '1',
+    title: 'Summer Sale Campaign',
+    caption: '🌞 Big summer sale is here! Get up to 50% off on all products. Limited time only!',
+    hashtags: ['#summersale', '#discount', '#shopping', '#deals'],
+    contentType: 'image',
+    media: [],
+    platforms: ['facebook', 'instagram', 'tiktok'],
+    status: 'published',
+    publishedAt: '2025-06-18T10:00:00Z',
+    createdAt: '2025-06-17T08:00:00Z',
+    updatedAt: '2025-06-18T10:00:00Z',
+    analytics: {
+      reach: 45000,
+      impressions: 120000,
+      likes: 2800,
+      comments: 340,
+      shares: 890,
+      clicks: 1200,
+      engagementRate: 8.9,
+      byPlatform: {
+        facebook: { reach: 18000, impressions: 48000, likes: 1100, comments: 140, shares: 350, engagementRate: 8.8 },
+        instagram: { reach: 15000, impressions: 42000, likes: 1200, comments: 120, shares: 380, engagementRate: 9.2 },
+        tiktok: { reach: 12000, impressions: 30000, likes: 500, comments: 80, shares: 160, engagementRate: 8.5 },
+        youtube: { reach: 0, impressions: 0, likes: 0, comments: 0, shares: 0, engagementRate: 0 },
+        telegram: { reach: 0, impressions: 0, likes: 0, comments: 0, shares: 0, engagementRate: 0 },
+        linkedin: { reach: 0, impressions: 0, likes: 0, comments: 0, shares: 0, engagementRate: 0 },
+        twitter: { reach: 0, impressions: 0, likes: 0, comments: 0, shares: 0, engagementRate: 0 },
+        website: { reach: 0, impressions: 0, likes: 0, comments: 0, shares: 0, engagementRate: 0 },
+      },
+    },
+  },
+  {
+    id: '2',
+    title: 'Product Launch Video',
+    caption: '🚀 Introducing our newest product! Watch to see all the amazing features.',
+    hashtags: ['#newproduct', '#launch', '#innovation'],
+    contentType: 'video',
+    media: [],
+    platforms: ['youtube', 'facebook', 'instagram', 'tiktok'],
+    status: 'scheduled',
+    scheduledAt: '2025-06-22T14:00:00Z',
+    createdAt: '2025-06-19T09:00:00Z',
+    updatedAt: '2025-06-19T09:00:00Z',
+  },
+  {
+    id: '3',
+    title: 'Weekly Tips Post',
+    caption: '💡 5 tips to boost your productivity this week. Save this for later!',
+    hashtags: ['#productivity', '#tips', '#motivation'],
+    contentType: 'carousel',
+    media: [],
+    platforms: ['instagram', 'linkedin', 'facebook'],
+    status: 'draft',
+    createdAt: '2025-06-19T11:00:00Z',
+    updatedAt: '2025-06-19T11:00:00Z',
+  },
+  {
+    id: '4',
+    title: 'Customer Testimonial',
+    caption: '⭐ See what our customers are saying about us!',
+    hashtags: ['#testimonial', '#review', '#customerLove'],
+    contentType: 'image',
+    media: [],
+    platforms: ['facebook', 'instagram', 'linkedin'],
+    status: 'published',
+    publishedAt: '2025-06-16T09:00:00Z',
+    createdAt: '2025-06-15T07:00:00Z',
+    updatedAt: '2025-06-16T09:00:00Z',
+  },
+];
+
+export const mockMediaFiles: MediaFile[] = [
+  { id: '1', name: 'summer-banner.jpg', type: 'image', url: 'https://picsum.photos/seed/1/800/600', thumbnailUrl: 'https://picsum.photos/seed/1/200/150', size: 245000, uploadedAt: '2025-06-18', tags: ['summer', 'banner'] },
+  { id: '2', name: 'product-video.mp4', type: 'video', url: '#', thumbnailUrl: 'https://picsum.photos/seed/2/200/150', size: 15400000, uploadedAt: '2025-06-17', tags: ['product', 'video'] },
+  { id: '3', name: 'logo-white.png', type: 'image', url: 'https://picsum.photos/seed/3/800/600', thumbnailUrl: 'https://picsum.photos/seed/3/200/150', size: 45000, uploadedAt: '2025-06-10', tags: ['brand', 'logo'] },
+  { id: '4', name: 'team-photo.jpg', type: 'image', url: 'https://picsum.photos/seed/4/800/600', thumbnailUrl: 'https://picsum.photos/seed/4/200/150', size: 380000, uploadedAt: '2025-06-12', tags: ['team', 'office'] },
+  { id: '5', name: 'promo-graphic.png', type: 'image', url: 'https://picsum.photos/seed/5/800/600', thumbnailUrl: 'https://picsum.photos/seed/5/200/150', size: 120000, uploadedAt: '2025-06-19', tags: ['promo', 'sale'] },
+  { id: '6', name: 'tutorial.mp4', type: 'video', url: '#', thumbnailUrl: 'https://picsum.photos/seed/6/200/150', size: 28000000, uploadedAt: '2025-06-14', tags: ['tutorial', 'howto'] },
+];
+
+export const mockPlatformAccounts: PlatformAccount[] = [
+  { id: '1', platform: 'facebook', name: 'EESC Store', handle: '@eescstore', connected: true, followers: 12400 },
+  { id: '2', platform: 'instagram', name: 'EESC Store', handle: '@eescstore', connected: true, followers: 8900 },
+  { id: '3', platform: 'youtube', name: 'EESC Store Channel', handle: '@eescstore', connected: true, followers: 3200 },
+  { id: '4', platform: 'tiktok', name: 'EESC Store', handle: '@eescstore', connected: true, followers: 21000 },
+  { id: '5', platform: 'telegram', name: 'EESC Store Channel', handle: 't.me/eescstore', connected: true, followers: 5600 },
+  { id: '6', platform: 'linkedin', name: 'EESC Store', handle: 'eesc-store', connected: false, followers: 890 },
+  { id: '7', platform: 'twitter', name: 'EESC Store', handle: '@eescstore', connected: false, followers: 1100 },
+  { id: '8', platform: 'website', name: 'eescstore.com', handle: 'eescstore.com', connected: false },
+];
+
+export const mockTeamMembers: TeamMember[] = [
+  { id: '1', name: 'Sothen Hoeung', email: 'sothenreal@gmail.com', role: 'admin', joinedAt: '2024-01-01' },
+  { id: '2', name: 'Dara Chann', email: 'dara@eescstore.com', role: 'editor', joinedAt: '2024-03-15' },
+  { id: '3', name: 'Mony Sok', email: 'mony@eescstore.com', role: 'viewer', joinedAt: '2024-06-01' },
+];
