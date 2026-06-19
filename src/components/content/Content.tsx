@@ -279,9 +279,115 @@ const NewPostModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   );
 };
 
+const PostDetailModal: React.FC<{ post: Post; onClose: () => void }> = ({ post, onClose }) => {
+  const sc = getStatusColor(post.status);
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+    }}>
+      <div style={{
+        background: '#fff', borderRadius: 20, width: 560, maxHeight: '85vh',
+        overflowY: 'auto', padding: 32, boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>Post Details</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6b7280' }}>✕</button>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: sc.bg, color: sc.text }}>
+            {post.status.charAt(0).toUpperCase() + post.status.slice(1)}
+          </span>
+          <span style={{ fontSize: 11, background: '#f3f4f6', padding: '3px 9px', borderRadius: 6, color: '#6b7280' }}>
+            {post.contentType}
+          </span>
+        </div>
+
+        <h3 style={{ margin: '0 0 12px', fontSize: 18, fontWeight: 700, color: '#111' }}>{post.title}</h3>
+
+        {post.media.length > 0 && (
+          <div style={{ display: 'grid', gridTemplateColumns: post.media.length === 1 ? '1fr' : 'repeat(2, 1fr)', gap: 8, marginBottom: 16 }}>
+            {post.media.map((m) => (
+              <div key={m.id} style={{ borderRadius: 12, overflow: 'hidden', background: '#f3f4f6', maxHeight: 280 }}>
+                {m.type === 'video' ? (
+                  <video src={m.url} controls style={{ width: '100%', display: 'block' }} />
+                ) : (
+                  <img src={m.url} alt={m.name} style={{ width: '100%', display: 'block', objectFit: 'cover' }} />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div style={{ background: '#f9fafb', borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#9ca3af', marginBottom: 6 }}>CAPTION</div>
+          <p style={{ margin: 0, fontSize: 14, color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+            {post.caption || 'No caption'}
+          </p>
+          {post.hashtags.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+              {post.hashtags.map((h) => (
+                <span key={h} style={{ fontSize: 12, color: '#6366f1', fontWeight: 600 }}>{h}</span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#9ca3af', marginBottom: 8 }}>PLATFORMS</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {post.platforms.map((p) => (
+              <span key={p} style={{
+                fontSize: 12, fontWeight: 600,
+                background: platformConfig[p].bgColor,
+                color: platformConfig[p].color,
+                padding: '4px 10px', borderRadius: 6,
+              }}>
+                {platformConfig[p].label}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 13, color: '#6b7280' }}>
+          <div>
+            <div style={{ fontWeight: 600, color: '#9ca3af', marginBottom: 2 }}>Created</div>
+            {new Date(post.createdAt).toLocaleString()}
+          </div>
+          {post.scheduledAt && (
+            <div>
+              <div style={{ fontWeight: 600, color: '#9ca3af', marginBottom: 2 }}>Scheduled for</div>
+              {new Date(post.scheduledAt).toLocaleString()}
+            </div>
+          )}
+          {post.publishedAt && (
+            <div>
+              <div style={{ fontWeight: 600, color: '#9ca3af', marginBottom: 2 }}>Published</div>
+              {new Date(post.publishedAt).toLocaleString()}
+            </div>
+          )}
+        </div>
+
+        {post.analytics && (
+          <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #f3f4f6' }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#9ca3af', marginBottom: 10 }}>ANALYTICS</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+              <div><div style={{ fontSize: 18, fontWeight: 700, color: '#111' }}>{post.analytics.reach}</div><div style={{ fontSize: 11, color: '#9ca3af' }}>Reach</div></div>
+              <div><div style={{ fontSize: 18, fontWeight: 700, color: '#111' }}>{post.analytics.likes}</div><div style={{ fontSize: 11, color: '#9ca3af' }}>Likes</div></div>
+              <div><div style={{ fontSize: 18, fontWeight: 700, color: '#111' }}>{post.analytics.engagementRate}%</div><div style={{ fontSize: 11, color: '#9ca3af' }}>Engagement</div></div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export const Content: React.FC = () => {
   const { posts, deletePost } = useAppStore();
   const [showModal, setShowModal] = useState(false);
+  const [viewingPost, setViewingPost] = useState<Post | null>(null);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
 
@@ -294,6 +400,7 @@ export const Content: React.FC = () => {
   return (
     <div>
       {showModal && <NewPostModal onClose={() => setShowModal(false)} />}
+      {viewingPost && <PostDetailModal post={viewingPost} onClose={() => setViewingPost(null)} />}
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
         <div>
@@ -360,7 +467,12 @@ export const Content: React.FC = () => {
                 )}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                    <span style={{ fontWeight: 600, fontSize: 15, color: '#111' }}>{post.title}</span>
+                    <span
+                      onClick={() => setViewingPost(post)}
+                      style={{ fontWeight: 600, fontSize: 15, color: '#111', cursor: 'pointer' }}
+                    >
+                      {post.title}
+                    </span>
                     <span style={{
                       fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 20,
                       background: sc.bg, color: sc.text,
@@ -394,7 +506,10 @@ export const Content: React.FC = () => {
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <button style={{ padding: '6px 10px', borderRadius: 8, border: '1.5px solid #e5e7eb', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                    <button
+                      onClick={() => setViewingPost(post)}
+                      style={{ padding: '6px 10px', borderRadius: 8, border: '1.5px solid #e5e7eb', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                    >
                       <Edit2 size={13} color="#6b7280" />
                     </button>
                     <button
