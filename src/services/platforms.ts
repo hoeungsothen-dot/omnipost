@@ -169,8 +169,76 @@ export const publishService = {
     return await callBackend('instagram', accountId, payload);
   },
 
+  /**
+   * Telegram is special: the Bot API can be called directly from the browser,
+   * no backend server needed. channelId should be like "@yourchannel" or a
+   * numeric chat ID (e.g. "-1001234567890").
+   */
   async publishToTelegram(channelId: string, payload: PublishPayload) {
-    return await callBackend('telegram', channelId, payload);
+    const botToken = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
+    if (!botToken) {
+      throw new Error('Telegram bot token not configured. Add VITE_TELEGRAM_BOT_TOKEN in your environment variables.');
+    }
+    if (!channelId) {
+      throw new Error('No Telegram channel ID set. Add it in Platforms settings.');
+    }
+
+    const text = [payload.caption, payload.hashtags.map((h) => h.startsWith('#') ? h : `#${h}`).join(' ')]
+      .filter(Boolean)
+      .join('\n\n');
+
+    const base = `https://api.telegram.org/bot${botToken}`;
+
+    // No media: simple text message
+    if (!payload.mediaUrls?.length) {
+      const res = await fetch(`${base}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: channelId, text, parse_mode: 'HTML' }),
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.description || 'Telegram API error');
+      return { platform: 'telegram', postId: String(data.result.message_id), success: true };
+    }
+
+    // Single image
+    if (payload.mediaUrls.length === 1 && payload.contentType === 'image') {
+      const res = await fetch(`${base}/sendPhoto`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: channelId, photo: payload.mediaUrls[0], caption: text, parse_mode: 'HTML' }),
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.description || 'Telegram API error');
+      return { platform: 'telegram', postId: String(data.result.message_id), success: true };
+    }
+
+    // Single video
+    if (payload.mediaUrls.length === 1 && payload.contentType === 'video') {
+      const res = await fetch(`${base}/sendVideo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: channelId, video: payload.mediaUrls[0], caption: text, parse_mode: 'HTML' }),
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.description || 'Telegram API error');
+      return { platform: 'telegram', postId: String(data.result.message_id), success: true };
+    }
+
+    // Multiple media: album (mediaGroup)
+    const media = payload.mediaUrls.map((url, i) => ({
+      type: payload.contentType === 'video' ? 'video' : 'photo',
+      media: url,
+      ...(i === 0 ? { caption: text, parse_mode: 'HTML' } : {}),
+    }));
+    const res = await fetch(`${base}/sendMediaGroup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: channelId, media }),
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.description || 'Telegram API error');
+    return { platform: 'telegram', postId: String(data.result[0].message_id), success: true };
   },
 
   async publishToLinkedIn(orgId: string, payload: PublishPayload) {
@@ -235,3 +303,27 @@ async function callBackend(platform: string, accountId: string, payload: Publish
 
   return await response.json();
 }
+
+/**
+ * Verify the Telegram bot token is valid and check if it can post to a given channel.
+ * Useful for the "Test Connection" button on the Platforms page.
+ */
+export const telegramService = {
+  async getBotInfo() {
+    const botToken = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
+    if (!botToken) throw new Error('VITE_TELEGRAM_BOT_TOKEN not set');
+    const res = await fetch(`https://api.telegram.org/bot${botToken}/getMe`);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.description || 'Invalid bot token');
+    return data.result as { id: number; username: string; first_name: string };
+  },
+
+  async testChannel(channelId: string) {
+    const botToken = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
+    if (!botToken) throw new Error('VITE_TELEGRAM_BOT_TOKEN not set');
+    const res = await fetch(`https://api.telegram.org/bot${botToken}/getChat?chat_id=${encodeURIComponent(channelId)}`);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.description || 'Bot cannot access this channel. Make sure it is added as an admin.');
+    return data.result as { id: number; title?: string; username?: string };
+  },
+};
