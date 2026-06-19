@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAppStore } from '../store';
+import { useAuth } from '../auth/AuthContext';
 import {
   LayoutDashboard, FileText, Calendar, BarChart2,
   Image, Sparkles, Globe, Users, Settings, LogOut, Bell, Zap
@@ -19,6 +20,7 @@ const navItems = [
 
 export const Sidebar: React.FC = () => {
   const { activeView, setActiveView, user } = useAppStore();
+  const { signOut } = useAuth();
 
   return (
     <aside style={{
@@ -137,7 +139,9 @@ export const Sidebar: React.FC = () => {
           </div>
           <Bell size={16} color="#9ca3af" style={{ cursor: 'pointer' }} />
         </div>
-        <button style={{
+        <button
+          onClick={() => signOut()}
+          style={{
           display: 'flex', alignItems: 'center', gap: 6,
           color: '#ef4444', fontSize: 13, fontWeight: 500,
           background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0',
