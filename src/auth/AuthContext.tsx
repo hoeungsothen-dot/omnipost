@@ -218,10 +218,16 @@ export const LoginPage: React.FC = () => {
           </button>
         </div>
 
-        {/* Demo hint */}
-        <div style={{ marginTop: 20, padding: '12px 16px', background: '#f8f9fc', borderRadius: 10, fontSize: 12, color: '#6b7280', textAlign: 'center' }}>
-          💡 <strong>Demo mode</strong> — works without Supabase. Add <code>VITE_SUPABASE_URL</code> to enable real auth.
-        </div>
+        {/* Connection status hint */}
+        {import.meta.env.VITE_SUPABASE_URL ? (
+          <div style={{ marginTop: 20, padding: '12px 16px', background: '#f0fdf4', borderRadius: 10, fontSize: 12, color: '#16a34a', textAlign: 'center' }}>
+            ✅ <strong>Connected</strong> — real accounts &amp; data via Supabase.
+          </div>
+        ) : (
+          <div style={{ marginTop: 20, padding: '12px 16px', background: '#f8f9fc', borderRadius: 10, fontSize: 12, color: '#6b7280', textAlign: 'center' }}>
+            💡 <strong>Demo mode</strong> — works without Supabase. Add <code>VITE_SUPABASE_URL</code> to enable real auth.
+          </div>
+        )}
       </div>
     </div>
   );
