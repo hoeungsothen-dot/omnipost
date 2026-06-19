@@ -12,16 +12,9 @@ export const MediaLibrary: React.FC = () => {
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     acceptedFiles.forEach((file) => {
-      const url = URL.createObjectURL(file);
-      addMediaFile({
-        id: generateId(),
-        name: file.name,
-        type: file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'document',
-        url,
-        thumbnailUrl: file.type.startsWith('image/') ? url : undefined,
-        size: file.size,
-        uploadedAt: new Date().toISOString().split('T')[0],
-        tags: [],
+      addMediaFile(file).catch((err) => {
+        console.error('Upload failed:', err);
+        alert(`Failed to upload ${file.name}: ${err.message || 'Unknown error'}`);
       });
     });
   }, [addMediaFile]);
