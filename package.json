@@ -1,6 +1,6 @@
 {
   "name": "omnipost",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Multi-platform Content Management & Digital Marketing Analytics System",
   "scripts": {
@@ -10,27 +10,28 @@
     "lint": "eslint src --ext .ts,.tsx"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.39.7",
+    "@tanstack/react-query": "^5.24.1",
+    "axios": "^1.6.7",
+    "clsx": "^2.1.0",
+    "date-fns": "^3.3.1",
+    "lucide-react": "^0.383.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.22.0",
-    "recharts": "^2.12.0",
-    "lucide-react": "^0.383.0",
-    "date-fns": "^3.3.1",
-    "zustand": "^4.5.0",
-    "axios": "^1.6.7",
-    "@tanstack/react-query": "^5.24.1",
     "react-dropzone": "^14.2.3",
     "react-hot-toast": "^2.4.1",
-    "clsx": "^2.1.0"
+    "react-router-dom": "^6.22.0",
+    "recharts": "^2.12.0",
+    "zustand": "^4.5.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.56",
     "@types/react-dom": "^18.2.19",
     "@vitejs/plugin-react": "^4.2.1",
-    "typescript": "^5.2.2",
-    "vite": "^5.1.4",
     "autoprefixer": "^10.4.17",
     "postcss": "^8.4.35",
-    "tailwindcss": "^3.4.1"
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.2.2",
+    "vite": "^5.1.4"
   }
 }
