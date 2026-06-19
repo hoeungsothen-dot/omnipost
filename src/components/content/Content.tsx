@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { Plus, Search, Filter, Trash2, Edit2, Send } from 'lucide-react';
 import { useAppStore } from '../../store';
 import { platformConfig, getStatusColor, generateId } from '../../utils/platforms';
+import { publishService } from '../../services/platforms';
 import type { Post, Platform, ContentType } from '../../types';
 
 const PLATFORMS: Platform[] = ['facebook', 'instagram', 'youtube', 'tiktok', 'telegram', 'linkedin', 'twitter', 'website'];
 
 const NewPostModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const { addPost } = useAppStore();
+  const { addPost, platformAccounts } = useAppStore();
   const [form, setForm] = useState({
     title: '',
     caption: '',
@@ -17,6 +18,7 @@ const NewPostModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     scheduleDate: '',
     scheduleTime: '',
   });
+  const [publishResults, setPublishResults] = useState<{ platform: Platform; success: boolean; error?: string }[]>([]);
 
   const togglePlatform = (p: Platform) => {
     setForm((f) => ({
@@ -30,6 +32,28 @@ const NewPostModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       alert('Please fill in the title and select at least one platform.');
       return;
     }
+
+    // If publishing now and Telegram is selected, actually send it
+    if (status === 'published' && form.platforms.includes('telegram')) {
+      const telegramAccount = platformAccounts.find((p) => p.platform === 'telegram');
+      if (!telegramAccount?.connected || !telegramAccount.handle) {
+        alert('Telegram is not connected yet. Go to Platforms to connect it first, or remove Telegram from this post.');
+        return;
+      }
+      try {
+        const result = await publishService.publishToTelegram(telegramAccount.handle, {
+          caption: form.caption,
+          hashtags: form.hashtags.split(' ').filter(Boolean),
+          mediaUrls: [],
+          contentType: form.contentType,
+        });
+        setPublishResults([{ platform: 'telegram', success: true }]);
+      } catch (err: any) {
+        alert(`Failed to publish to Telegram: ${err.message}`);
+        return;
+      }
+    }
+
     try {
       await addPost({
         title: form.title,
