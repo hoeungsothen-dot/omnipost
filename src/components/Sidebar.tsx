@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAppStore } from '../../store';
+import { useAppStore } from '../store';
 import {
   LayoutDashboard, FileText, Calendar, BarChart2,
   Image, Sparkles, Globe, Users, Settings, LogOut, Bell, Zap
