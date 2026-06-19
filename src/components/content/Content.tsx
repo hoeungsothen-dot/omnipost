@@ -8,7 +8,7 @@ import type { Post, Platform, ContentType } from '../../types';
 const PLATFORMS: Platform[] = ['facebook', 'instagram', 'youtube', 'tiktok', 'telegram', 'linkedin', 'twitter', 'website'];
 
 const NewPostModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const { addPost, platformAccounts } = useAppStore();
+  const { addPost, platformAccounts, mediaFiles } = useAppStore();
   const [form, setForm] = useState({
     title: '',
     caption: '',
@@ -17,8 +17,10 @@ const NewPostModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     platforms: [] as Platform[],
     scheduleDate: '',
     scheduleTime: '',
+    selectedMediaIds: [] as string[],
   });
   const [publishResults, setPublishResults] = useState<{ platform: Platform; success: boolean; error?: string }[]>([]);
+  const [publishing, setPublishing] = useState(false);
 
   const togglePlatform = (p: Platform) => {
     setForm((f) => ({
@@ -26,6 +28,17 @@ const NewPostModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       platforms: f.platforms.includes(p) ? f.platforms.filter((x) => x !== p) : [...f.platforms, p],
     }));
   };
+
+  const toggleMedia = (id: string) => {
+    setForm((f) => ({
+      ...f,
+      selectedMediaIds: f.selectedMediaIds.includes(id)
+        ? f.selectedMediaIds.filter((x) => x !== id)
+        : [...f.selectedMediaIds, id],
+    }));
+  };
+
+  const selectedMedia = mediaFiles.filter((m) => form.selectedMediaIds.includes(m.id));
 
   const handleSubmit = async (status: 'draft' | 'scheduled' | 'published') => {
     if (!form.title || form.platforms.length === 0) {
@@ -40,18 +53,21 @@ const NewPostModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         alert('Telegram is not connected yet. Go to Platforms to connect it first, or remove Telegram from this post.');
         return;
       }
+      setPublishing(true);
       try {
-        const result = await publishService.publishToTelegram(telegramAccount.handle, {
+        await publishService.publishToTelegram(telegramAccount.handle, {
           caption: form.caption,
           hashtags: form.hashtags.split(' ').filter(Boolean),
-          mediaUrls: [],
-          contentType: form.contentType,
+          mediaUrls: selectedMedia.map((m) => m.url),
+          contentType: selectedMedia[0]?.type === 'video' ? 'video' : form.contentType,
         });
         setPublishResults([{ platform: 'telegram', success: true }]);
       } catch (err: any) {
+        setPublishing(false);
         alert(`Failed to publish to Telegram: ${err.message}`);
         return;
       }
+      setPublishing(false);
     }
 
     try {
@@ -60,7 +76,7 @@ const NewPostModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         caption: form.caption,
         hashtags: form.hashtags.split(' ').filter(Boolean),
         contentType: form.contentType,
-        media: [],
+        media: selectedMedia,
         platforms: form.platforms,
         status,
         scheduledAt: form.scheduleDate && form.scheduleTime
@@ -137,6 +153,51 @@ const NewPostModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
           <div>
             <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 10 }}>
+              Media <span style={{ fontWeight: 400, color: '#9ca3af' }}>({form.selectedMediaIds.length} selected)</span>
+            </label>
+            {mediaFiles.length === 0 ? (
+              <div style={{ padding: '14px 16px', background: '#f9fafb', borderRadius: 10, fontSize: 13, color: '#9ca3af', textAlign: 'center' }}>
+                No media uploaded yet. Go to Media Library to upload posters or videos first.
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: 8, maxHeight: 180, overflowY: 'auto', padding: 4 }}>
+                {mediaFiles.map((m) => {
+                  const isSelected = form.selectedMediaIds.includes(m.id);
+                  return (
+                    <div
+                      key={m.id}
+                      onClick={() => toggleMedia(m.id)}
+                      style={{
+                        position: 'relative', borderRadius: 10, overflow: 'hidden', cursor: 'pointer',
+                        border: `2.5px solid ${isSelected ? '#6366f1' : 'transparent'}`,
+                        height: 80, background: '#f3f4f6',
+                      }}
+                    >
+                      {m.thumbnailUrl ? (
+                        <img src={m.thumbnailUrl} alt={m.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#9ca3af' }}>
+                          🎥
+                        </div>
+                      )}
+                      {isSelected && (
+                        <div style={{
+                          position: 'absolute', top: 4, right: 4,
+                          width: 18, height: 18, borderRadius: '50%',
+                          background: '#6366f1', color: '#fff',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 11, fontWeight: 700,
+                        }}>✓</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 10 }}>
               Platforms * <span style={{ fontWeight: 400, color: '#9ca3af' }}>({form.platforms.length} selected)</span>
             </label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -190,23 +251,26 @@ const NewPostModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
             <button
               onClick={() => handleSubmit('draft')}
-              style={{ flex: 1, padding: '11px', border: '1.5px solid #e5e7eb', borderRadius: 10, background: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', color: '#374151' }}
+              disabled={publishing}
+              style={{ flex: 1, padding: '11px', border: '1.5px solid #e5e7eb', borderRadius: 10, background: '#fff', fontSize: 14, fontWeight: 600, cursor: publishing ? 'not-allowed' : 'pointer', color: '#374151' }}
             >
               Save Draft
             </button>
             {form.scheduleDate && (
               <button
                 onClick={() => handleSubmit('scheduled')}
-                style={{ flex: 1, padding: '11px', border: 'none', borderRadius: 10, background: '#dbeafe', fontSize: 14, fontWeight: 600, cursor: 'pointer', color: '#2563eb' }}
+                disabled={publishing}
+                style={{ flex: 1, padding: '11px', border: 'none', borderRadius: 10, background: '#dbeafe', fontSize: 14, fontWeight: 600, cursor: publishing ? 'not-allowed' : 'pointer', color: '#2563eb' }}
               >
                 Schedule
               </button>
             )}
             <button
               onClick={() => handleSubmit('published')}
-              style={{ flex: 1, padding: '11px', border: 'none', borderRadius: 10, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', fontSize: 14, fontWeight: 600, cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+              disabled={publishing}
+              style={{ flex: 1, padding: '11px', border: 'none', borderRadius: 10, background: publishing ? '#c7c9f9' : 'linear-gradient(135deg, #6366f1, #8b5cf6)', fontSize: 14, fontWeight: 600, cursor: publishing ? 'not-allowed' : 'pointer', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
             >
-              <Send size={14} /> Publish Now
+              <Send size={14} /> {publishing ? 'Publishing...' : 'Publish Now'}
             </button>
           </div>
         </div>
@@ -285,6 +349,15 @@ export const Content: React.FC = () => {
                 border: '1px solid #f3f4f6',
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
               }}>
+                {post.media.length > 0 && (
+                  <div style={{ width: 56, height: 56, borderRadius: 10, overflow: 'hidden', flexShrink: 0, background: '#f3f4f6' }}>
+                    {post.media[0].thumbnailUrl ? (
+                      <img src={post.media[0].thumbnailUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🎥</div>
+                    )}
+                  </div>
+                )}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
                     <span style={{ fontWeight: 600, fontSize: 15, color: '#111' }}>{post.title}</span>
