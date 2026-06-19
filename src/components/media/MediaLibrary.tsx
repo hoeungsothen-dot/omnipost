@@ -9,14 +9,25 @@ export const MediaLibrary: React.FC = () => {
   const [search, setSearch] = useState('');
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [uploading, setUploading] = useState<{ current: number; total: number } | null>(null);
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    acceptedFiles.forEach((file) => {
-      addMediaFile(file).catch((err) => {
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    setUploading({ current: 0, total: acceptedFiles.length });
+    const failed: string[] = [];
+    for (let i = 0; i < acceptedFiles.length; i++) {
+      const file = acceptedFiles[i];
+      setUploading({ current: i + 1, total: acceptedFiles.length });
+      try {
+        await addMediaFile(file);
+      } catch (err: any) {
         console.error('Upload failed:', err);
-        alert(`Failed to upload ${file.name}: ${err.message || 'Unknown error'}`);
-      });
-    });
+        failed.push(`${file.name}: ${err.message || 'Unknown error'}`);
+      }
+    }
+    setUploading(null);
+    if (failed.length) {
+      alert(`Some files failed to upload:\n\n${failed.join('\n')}`);
+    }
   }, [addMediaFile]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -64,16 +75,30 @@ export const MediaLibrary: React.FC = () => {
           textAlign: 'center',
           background: isDragActive ? '#eef2ff' : '#fafafa',
           marginBottom: 24,
-          cursor: 'pointer',
+          cursor: uploading ? 'wait' : 'pointer',
           transition: 'all 0.2s',
+          opacity: uploading ? 0.7 : 1,
         }}
       >
-        <input {...getInputProps()} />
-        <Upload size={32} color={isDragActive ? '#6366f1' : '#9ca3af'} style={{ marginBottom: 12 }} />
-        <div style={{ fontSize: 15, fontWeight: 600, color: isDragActive ? '#6366f1' : '#374151', marginBottom: 6 }}>
-          {isDragActive ? 'Drop files here' : 'Drag & drop files here, or click to upload'}
-        </div>
-        <div style={{ fontSize: 12, color: '#9ca3af' }}>Supports: JPG, PNG, GIF, MP4, MOV, WebM</div>
+        <input {...getInputProps()} disabled={Boolean(uploading)} />
+        {uploading ? (
+          <>
+            <Upload size={32} color="#6366f1" style={{ marginBottom: 12, animation: 'pulse 1s ease-in-out infinite' }} />
+            <div style={{ fontSize: 15, fontWeight: 600, color: '#6366f1', marginBottom: 6 }}>
+              Uploading {uploading.current} of {uploading.total}...
+            </div>
+            <div style={{ fontSize: 12, color: '#9ca3af' }}>Please wait, do not close this page</div>
+            <style>{`@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }`}</style>
+          </>
+        ) : (
+          <>
+            <Upload size={32} color={isDragActive ? '#6366f1' : '#9ca3af'} style={{ marginBottom: 12 }} />
+            <div style={{ fontSize: 15, fontWeight: 600, color: isDragActive ? '#6366f1' : '#374151', marginBottom: 6 }}>
+              {isDragActive ? 'Drop files here' : 'Drag & drop files here, or click to upload'}
+            </div>
+            <div style={{ fontSize: 12, color: '#9ca3af' }}>Supports: JPG, PNG, GIF, MP4, MOV, WebM</div>
+          </>
+        )}
       </div>
 
       {/* Filters */}
