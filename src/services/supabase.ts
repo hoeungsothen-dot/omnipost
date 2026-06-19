@@ -81,17 +81,20 @@ export const postsService = {
     const session = await authService.getSession();
     if (!session) throw new Error('Not authenticated');
 
+    const { media_ids, ...postFields } = post;
+
     const { data, error } = await supabase
       .from('posts')
-      .insert({ ...post, user_id: session.user.id })
+      .insert({ ...postFields, user_id: session.user.id })
       .select()
       .single();
     if (error) throw error;
 
-    if (post.media_ids?.length) {
-      await supabase.from('post_media').insert(
-        post.media_ids.map((media_id, position) => ({ post_id: data.id, media_id, position }))
+    if (media_ids?.length) {
+      const { error: mediaError } = await supabase.from('post_media').insert(
+        media_ids.map((media_id, position) => ({ post_id: data.id, media_id, position }))
       );
+      if (mediaError) throw mediaError;
     }
     return data;
   },
