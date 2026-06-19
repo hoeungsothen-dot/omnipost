@@ -15,17 +15,15 @@ export const Team: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', role: 'editor' as TeamMember['role'] });
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!form.name || !form.email) return;
-    addTeamMember({
-      id: generateId(),
-      name: form.name,
-      email: form.email,
-      role: form.role,
-      joinedAt: new Date().toISOString().split('T')[0],
-    });
-    setForm({ name: '', email: '', role: 'editor' });
-    setShowForm(false);
+    try {
+      await addTeamMember(form.email, form.role);
+      setForm({ name: '', email: '', role: 'editor' });
+      setShowForm(false);
+    } catch (err: any) {
+      alert(`Failed to invite member: ${err.message || 'Unknown error'}`);
+    }
   };
 
   return (
