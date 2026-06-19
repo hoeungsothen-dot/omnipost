@@ -210,6 +210,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       platforms: post.platforms,
       status: post.status,
       scheduled_at: post.scheduledAt,
+      media_ids: post.media.map((m) => m.id),
     });
     await get().loadAll();
   },
