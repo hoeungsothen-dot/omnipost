@@ -26,8 +26,21 @@ const views: Record<string, React.ComponentType> = {
 
 function AppInner() {
   const { user, loading } = useAuth();
-  const { activeView } = useAppStore();
+  const { activeView, setUser, loadAll } = useAppStore();
   const View = views[activeView] || Dashboard;
+
+  React.useEffect(() => {
+    if (user) {
+      setUser({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        businessName: user.businessName,
+        plan: (user.plan as 'free' | 'pro' | 'enterprise') || 'free',
+      });
+      loadAll();
+    }
+  }, [user?.id]);
 
   if (loading) {
     return (
