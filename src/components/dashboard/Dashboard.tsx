@@ -42,9 +42,10 @@ const StatCard: React.FC<{
 );
 
 export const Dashboard: React.FC = () => {
-  const { dashboardStats, posts } = useAppStore();
+  const { dashboardStats, posts, platformAccounts, isDemoMode, loading } = useAppStore();
 
   const recentPosts = posts.slice(0, 3);
+  const connectedCount = platformAccounts.filter((p) => p.connected).length;
 
   const platformChartData = dashboardStats.reachByPlatform.map(({ platform, reach }) => ({
     name: platformConfig[platform].label,
@@ -57,9 +58,19 @@ export const Dashboard: React.FC = () => {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
         <div>
           <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0, color: '#111' }}>Dashboard</h1>
-          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#f59e0b', fontWeight: 500 }}>
-            ⚡ Live data — connected to all your platforms
-          </p>
+          {isDemoMode ? (
+            <p style={{ margin: '4px 0 0', fontSize: 13, color: '#f59e0b', fontWeight: 500 }}>
+              ⚡ Demo data — sign up to start tracking your real content
+            </p>
+          ) : connectedCount === 0 ? (
+            <p style={{ margin: '4px 0 0', fontSize: 13, color: '#f59e0b', fontWeight: 500 }}>
+              ⚠️ No platforms connected yet — connect one in Platforms to start seeing data
+            </p>
+          ) : (
+            <p style={{ margin: '4px 0 0', fontSize: 13, color: '#16a34a', fontWeight: 500 }}>
+              ✅ Connected to {connectedCount} platform{connectedCount !== 1 ? 's' : ''}
+            </p>
+          )}
         </div>
       </div>
 
@@ -137,7 +148,13 @@ export const Dashboard: React.FC = () => {
           <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#111' }}>Recent posts</h3>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {recentPosts.map((post) => {
+          {recentPosts.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 20px', color: '#9ca3af' }}>
+              <div style={{ fontSize: 32, marginBottom: 10 }}>📭</div>
+              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4, color: '#374151' }}>No posts yet</div>
+              <div style={{ fontSize: 13 }}>Create your first post to see it here</div>
+            </div>
+          ) : recentPosts.map((post) => {
             const statusColors: Record<string, string> = {
               published: '#16a34a', scheduled: '#2563eb', draft: '#6b7280', failed: '#dc2626',
             };
