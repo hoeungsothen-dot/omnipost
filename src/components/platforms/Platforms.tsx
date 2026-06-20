@@ -2,12 +2,12 @@ import React from 'react';
 import { CheckCircle, XCircle, Settings, ExternalLink, Users, Send, Loader2 } from 'lucide-react';
 import { useAppStore } from '../../store';
 import { platformConfig, formatNumber } from '../../utils/platforms';
-import { telegramService } from '../../services/platforms';
+import { telegramService, buildFacebookConnectUrl } from '../../services/platforms';
 import type { Platform } from '../../types';
 
 const platformInstructions: Record<Platform, string> = {
-  facebook: 'Connect via Facebook Business Manager → Settings → Page Roles → Add access token.',
-  instagram: 'Link via Facebook Business Suite. Requires Instagram Professional account.',
+  facebook: 'Click Connect and approve access in the Facebook dialog. This links the Facebook Page you manage.',
+  instagram: 'Connects automatically when you connect Facebook, as long as an Instagram Professional account is linked to that Page.',
   youtube: 'Connect via Google Cloud Console → YouTube Data API v3 → OAuth 2.0 credentials.',
   tiktok: 'Use TikTok for Business → Developer Portal → Create App → Get API keys.',
   telegram: 'Create a bot via @BotFather → Get token → Add bot as admin to your channel.',
@@ -127,9 +127,44 @@ const TelegramConnectModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
 };
 
 export const Platforms: React.FC = () => {
-  const { platformAccounts, togglePlatformConnection } = useAppStore();
+  const { user, platformAccounts, togglePlatformConnection, loadAll } = useAppStore();
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
   const [showTelegramModal, setShowTelegramModal] = React.useState(false);
+  const [banner, setBanner] = React.useState<{ ok: boolean; text: string } | null>(null);
+
+  // Handle the redirect back from /api/oauth/facebook-callback
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const connected = params.get('connected');
+    const error = params.get('error');
+    if (connected) {
+      setBanner({ ok: true, text: `Connected: ${connected.split(',').join(' + ')}` });
+      loadAll();
+    } else if (error) {
+      setBanner({ ok: false, text: error });
+    }
+    if (connected || error) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleConnect = (account: (typeof platformAccounts)[number]) => {
+    if (account.platform === 'telegram') {
+      setShowTelegramModal(true);
+      return;
+    }
+    if (account.platform === 'facebook' || account.platform === 'instagram') {
+      if (!user.id) {
+        setBanner({ ok: false, text: 'Please sign in again before connecting a platform.' });
+        return;
+      }
+      window.location.href = buildFacebookConnectUrl(user.id);
+      return;
+    }
+    // Other platforms: OAuth flows not wired up yet.
+    togglePlatformConnection(account.id);
+  };
 
   const connected = platformAccounts.filter((p) => p.connected);
   const disconnected = platformAccounts.filter((p) => !p.connected);
@@ -142,6 +177,16 @@ export const Platforms: React.FC = () => {
           {connected.length} connected · {disconnected.length} available to connect
         </p>
       </div>
+
+      {banner && (
+        <div style={{
+          padding: '10px 16px', borderRadius: 10, fontSize: 13, marginBottom: 20,
+          background: banner.ok ? '#f0fdf4' : '#fef2f2',
+          color: banner.ok ? '#16a34a' : '#dc2626',
+        }}>
+          {banner.ok ? '✅ ' : '❌ '}{banner.text}
+        </div>
+      )}
 
       {/* Summary */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16, marginBottom: 28 }}>
@@ -223,10 +268,10 @@ export const Platforms: React.FC = () => {
                   </button>
                   <button
                     onClick={() => {
-                      if (account.platform === 'telegram' && !account.connected) {
-                        setShowTelegramModal(true);
-                      } else {
+                      if (account.connected) {
                         togglePlatformConnection(account.id);
+                      } else {
+                        handleConnect(account);
                       }
                     }}
                     style={{

@@ -6,6 +6,7 @@
  */
 
 import type { Platform } from '../types';
+import { supabase } from './supabase';
 
 // ─── OAUTH CONFIG ────────────────────────────────────────────────────────────
 
@@ -122,6 +123,33 @@ export const oauthConfig: Record<string, {
   },
 };
 
+// ─── FACEBOOK / INSTAGRAM CONNECT ────────────────────────────────────────────
+// Facebook and Instagram share one Meta App, so one OAuth flow connects both.
+// The redirect_uri points straight at our Vercel serverless function (not a
+// frontend route), because exchanging the code for a token needs
+// FB_APP_SECRET, which must never reach the browser.
+
+export function buildFacebookConnectUrl(userId: string): string {
+  const config = oauthConfig.facebook;
+  const appId = import.meta.env.VITE_FB_APP_ID || '';
+  const redirectUri = `${window.location.origin}/api/oauth/facebook-callback`;
+
+  const state = btoa(JSON.stringify({ userId, ts: Date.now() }))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+
+  const params = new URLSearchParams({
+    client_id: appId,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: config.scopes.join(','),
+    state,
+  });
+
+  return `${config.authUrl}?${params.toString()}`;
+}
+
 // ─── OAUTH HELPERS ───────────────────────────────────────────────────────────
 
 export function buildOAuthUrl(platform: Platform, redirectUri: string): string {
@@ -160,13 +188,12 @@ export interface PublishPayload {
 }
 
 export const publishService = {
-  async publishToFacebook(pageId: string, payload: PublishPayload) {
-    // Via your backend: POST /api/publish/facebook
-    return await callBackend('facebook', pageId, payload);
+  async publishToFacebook(_pageId: string, payload: PublishPayload) {
+    return await callOmniPostApi('facebook', payload);
   },
 
-  async publishToInstagram(accountId: string, payload: PublishPayload) {
-    return await callBackend('instagram', accountId, payload);
+  async publishToInstagram(_accountId: string, payload: PublishPayload) {
+    return await callOmniPostApi('instagram', payload);
   },
 
   /**
@@ -281,6 +308,21 @@ export const publishService = {
     }));
   },
 };
+
+async function callOmniPostApi(platform: 'facebook' | 'instagram', payload: PublishPayload) {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error('Not signed in.');
+
+  const response = await fetch(`/api/publish/${platform}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.message || `Failed to publish to ${platform}`);
+  return result;
+}
 
 async function callBackend(platform: string, accountId: string, payload: PublishPayload) {
   const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
